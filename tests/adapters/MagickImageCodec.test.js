@@ -182,18 +182,3 @@ test('encode with invalid bytes rejects (if magick present)', async () => {
     assert(threw, 'encoding garbage bytes should reject');
 });
 
-// ---------------------------------------------------------------------------
-// Stand-alone runner (when invoked directly, not via tests/run.js)
-// ---------------------------------------------------------------------------
-// When this file is the entry point (import.meta.url ends in this filename),
-// we call run() ourselves.  tests/run.js calls it too, so both paths work.
-if (import.meta.url.endsWith('MagickImageCodec.test.js')) {
-    const { run } = await import('../harness.js');
-    const failed = await run();
-    if (failed > 0) {
-        try {
-            const { exit } = await import('system');
-            exit(1);
-        } catch { /* not gjs */ }
-    }
-}

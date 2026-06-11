@@ -13,7 +13,7 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
-import { suite, test, assert, assertEqual, assertDeepEqual, run } from '../harness.js';
+import { suite, test, assert, assertEqual, assertDeepEqual } from '../harness.js';
 import { GioRegistryStorage } from '../../src/adapters/GioRegistryStorage.js';
 import { ClipboardEntry } from '../../src/core/ClipboardEntry.js';
 import { glibHashString } from '../../src/core/hash.js';
@@ -411,17 +411,3 @@ test('debounce window fires naturally after ~750 ms', async () => {
     }
 });
 
-// ---------------------------------------------------------------------------
-// Self-contained entry point.
-// Run with: gjs -m tests/adapters/GioRegistryStorage.test.js
-// ---------------------------------------------------------------------------
-
-const _failed = await run();
-if (_failed > 0) {
-    try {
-        const { exit } = await import('system');
-        exit(1);
-    } catch {
-        // Not under gjs — ignore.
-    }
-}
