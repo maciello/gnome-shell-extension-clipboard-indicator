@@ -44,6 +44,7 @@ export class ClipboardEntry {
     #id;            // image entries: stable identity (glibHash string)
     #bytes;         // image entries: raw bytes (Uint8Array) — may be null when lazy
     #stringValue;   // cached getStringValue()
+    #serializedCache = null; // Map<registryDir, string> or null — invalidated on mutation
 
     constructor ({ mimetype = DEFAULT_MIMETYPE, favorite = false, tag = null,
                    text = null, id = null, bytes = null }) {
@@ -105,21 +106,23 @@ export class ClipboardEntry {
 
     // --- mutations ---------------------------------------------------------
 
-    set favorite (val) { this.#favorite = !!val; }
-    setFavorite (val) { this.#favorite = !!val; }
+    set favorite (val) { this.#favorite = !!val; this.#serializedCache = null; }
+    setFavorite (val) { this.#favorite = !!val; this.#serializedCache = null; }
 
-    setTag (tag) { this.#tag = tag || null; }
+    setTag (tag) { this.#tag = tag || null; this.#serializedCache = null; }
 
     /** Replace text content (text entries only). */
     setText (text) {
         if (this.#isImage) return;
         this.#text = text != null ? text : '';
         this.#stringValue = this.#text;
+        this.#serializedCache = null;
     }
 
     /** Attach lazily-loaded image bytes (does not change identity). */
     setBytes (bytes) {
         if (this.#isImage) this.#bytes = bytes;
+        // bytes do not affect registry record — no cache invalidation needed
     }
 
     // --- registry (de)serialization — pure, format-compatible --------------
@@ -138,6 +141,29 @@ export class ClipboardEntry {
         }
         if (this.#tag) record.tag = this.#tag;
         return record;
+    }
+
+    /**
+     * Return the JSON string for this entry's registry record, caching the
+     * result per registryDir.  The cache is invalidated whenever the entry
+     * mutates (setText / setTag / setFavorite / set favorite).
+     *
+     * Used by GioRegistryStorage to build registry.txt incrementally so that
+     * only changed entries need re-stringifying.
+     *
+     * @param {string} registryDir
+     * @returns {string}
+     */
+    serializedRecord (registryDir) {
+        if (this.#serializedCache === null) {
+            this.#serializedCache = new Map();
+        }
+        let cached = this.#serializedCache.get(registryDir);
+        if (cached === undefined) {
+            cached = JSON.stringify(this.toRegistryRecord(registryDir));
+            this.#serializedCache.set(registryDir, cached);
+        }
+        return cached;
     }
 
     /**

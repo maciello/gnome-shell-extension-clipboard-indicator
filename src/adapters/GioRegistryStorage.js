@@ -234,7 +234,7 @@ export class GioRegistryStorage extends StoragePort {
         }
 
         this.#timeoutHandle = GLib.timeout_add(
-            GLib.PRIORITY_DEFAULT,
+            GLib.PRIORITY_DEFAULT_IDLE,
             DEBOUNCE_MS,
             () => {
                 this.#timeoutHandle = null;
@@ -296,8 +296,9 @@ export class GioRegistryStorage extends StoragePort {
     #doWrite (entries) {
         this.#ensureDir();
 
-        const records = entries.map(e => e.toRegistryRecord(this.#registryDir));
-        const json = JSON.stringify(records);
+        const json = entries.length === 0
+            ? '[]'
+            : '[' + entries.map(e => e.serializedRecord(this.#registryDir)).join(',') + ']';
         const bytes = new GLib.Bytes(new TextEncoder().encode(json));
 
         const file = Gio.file_new_for_path(this.#registryPath);
