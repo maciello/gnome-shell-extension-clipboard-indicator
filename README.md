@@ -1,3 +1,61 @@
+# Fork: maciello — performance + packaging
+
+This is a performance-focused fork of
+[Clipboard Indicator](https://github.com/Tudmotu/gnome-shell-extension-clipboard-indicator)
+targeting GNOME Shell 49 / GJS 1.86 (ESM).  It is a drop-in replacement: same
+UUID, same cache directory, same `registry.txt` format.
+
+## What is different
+
+- **O(1) dedup** — image identity is hashed once at creation and cached; dedup
+  is a Map lookup, not a per-copy re-hash of multi-MB bytes.
+- **Debounced async registry writes** — `registry.txt` is written at most once
+  per idle window instead of on every copy.
+- **Virtualised menu** — only ~20 actors are created regardless of history size;
+  actors are recycled on scroll.
+- **Opt-in image compression** — store images as WebP lossless (~55% smaller)
+  or WebP q90 (~10% smaller); transcoded back to PNG on paste.  Off by default.
+- **Ports-and-adapters architecture** — pure core modules tested headless under
+  `gjs -m tests/run.js`; gi/Clutter only in thin adapters.
+
+## Documentation
+
+- [Architecture & design rationale](docs/ARCHITECTURE.md)
+- [Benchmark skeleton (before / after / TBD)](docs/BENCHMARKS.md)
+- [Data safety & rollback](docs/DATA-SAFETY.md)
+
+## Install via AUR (Arch / Manjaro)
+
+```bash
+# Using yay
+yay -S gnome-shell-extension-clipboard-indicator-maciello
+
+# Or build manually
+git clone https://aur.archlinux.org/gnome-shell-extension-clipboard-indicator-maciello.git
+cd gnome-shell-extension-clipboard-indicator-maciello
+makepkg -si
+```
+
+After installation, enable the extension:
+
+```bash
+gnome-extensions enable clipboard-indicator@tudmotu.com
+```
+
+Or toggle it in GNOME Extensions / Extension Manager.
+
+## Install from source (this repo)
+
+```bash
+EXTDIR="$HOME/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com"
+git clone https://github.com/exephile/gnome-shell-extension-clipboard-indicator.git "$EXTDIR"
+gnome-extensions enable clipboard-indicator@tudmotu.com
+```
+
+Restart GNOME Shell (`Alt+F2` → `r` on X11, or log out and back in on Wayland).
+
+---
+
 # 📋 Clipboard Indicator
 
 [<img src="https://raw.githubusercontent.com/andyholmes/gnome-shell-extensions-badge/eb9af9a1c6f04eb060cb01de6aeb5c84232cd8c0/get-it-on-ego.svg?sanitize=true" width="180" alt="Get it on GNOME Extensions">](https://extensions.gnome.org/extension/779/clipboard-indicator/)

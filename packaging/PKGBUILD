@@ -1,0 +1,107 @@
+# Maintainer: maciello <marcel.prepens@gmail.com>
+#
+# Fork of gnome-shell-extension-clipboard-indicator that defers heavy work
+# off the GNOME Shell main loop (async dedup, async registry writes, lazy
+# menu population) to eliminate 200ms-2s freezes on copy/hover.
+#
+# Drop-in replacement for the official package: same uuid, same config path.
+# provides/conflicts/replaces the official AUR package.
+
+pkgname=gnome-shell-extension-clipboard-indicator-maciello
+_uuid=clipboard-indicator@tudmotu.com
+pkgver=r1.0000000
+pkgrel=1
+pkgdesc="Clipboard Indicator for GNOME Shell – maciello fork (async, freeze-free)"
+arch=('any')
+url="https://github.com/maciello/gnome-shell-extension-clipboard-indicator"
+license=('GPL3')
+depends=('gnome-shell')
+makedepends=('git' 'gettext' 'glib2')
+provides=('gnome-shell-extension-clipboard-indicator')
+conflicts=('gnome-shell-extension-clipboard-indicator')
+replaces=('gnome-shell-extension-clipboard-indicator')
+
+source=("${pkgname}::git+https://github.com/maciello/gnome-shell-extension-clipboard-indicator.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "${pkgname}"
+    # Produce version like: 72.r3.gabcdef1  (tag present)
+    # Or fall back to:       0.r42.gabcdef1  (no tags in repo)
+    local _desc
+    _desc="$(git describe --tags --long 2>/dev/null)" || true
+    if [[ -n "${_desc}" ]]; then
+        # strip leading 'v', convert trailing -N-gHASH to .rN.gHASH
+        printf '%s' "${_desc}" \
+            | sed 's/^v//;s/\([^-]*\)-\([0-9]*\)-g\([0-9a-f]*\)/\1.r\2.g\3/;s/-/./g'
+    else
+        # no tags at all: use commit count + short hash
+        printf '0.r%s.g%s' \
+            "$(git rev-list --count HEAD)" \
+            "$(git rev-parse --short HEAD)"
+    fi
+}
+
+prepare() {
+    cd "${pkgname}"
+    # nothing needed; build() compiles everything
+}
+
+build() {
+    cd "${pkgname}"
+    # Compile .po -> .mo (gettext)
+    for po in locale/*/LC_MESSAGES/*.po; do
+        msgfmt "${po}" -o "${po%.po}.mo"
+    done
+    # Compile GSettings schema into schemas/
+    glib-compile-schemas --strict --targetdir=schemas/ schemas/
+}
+
+package() {
+    cd "${pkgname}"
+
+    local _extdir="${pkgdir}/usr/share/gnome-shell/extensions/${_uuid}"
+    install -d "${_extdir}"
+
+    # --- top-level JS + assets -------------------------------------------------
+    for f in *.js; do
+        [[ -f "${f}" ]] && install -Dm644 "${f}" "${_extdir}/${f}"
+    done
+    install -Dm644 metadata.json  "${_extdir}/metadata.json"
+    install -Dm644 stylesheet.css "${_extdir}/stylesheet.css"
+    [[ -f prefs.js ]]     && install -Dm644 prefs.js     "${_extdir}/prefs.js"
+    [[ -f README.md ]]    && install -Dm644 README.md    "${_extdir}/README.md"
+    [[ -f README.rst ]]   && install -Dm644 README.rst   "${_extdir}/README.rst"
+    [[ -f LICENSE.rst ]]  && install -Dm644 LICENSE.rst  "${_extdir}/LICENSE.rst"
+    [[ -f LICENSE ]]      && install -Dm644 LICENSE      "${_extdir}/LICENSE"
+
+    # --- src/** (core, adapters, ports, ui sub-trees) --------------------------
+    if [[ -d src ]]; then
+        find src -type d | while read -r _dir; do
+            install -d "${_extdir}/${_dir}"
+        done
+        find src -type f -name '*.js' | while read -r _file; do
+            install -Dm644 "${_file}" "${_extdir}/${_file}"
+        done
+    fi
+
+    # --- compiled schemas -------------------------------------------------------
+    install -d "${_extdir}/schemas"
+    install -Dm644 schemas/gschemas.compiled \
+        "${_extdir}/schemas/gschemas.compiled"
+
+    local _xmlname="org.gnome.shell.extensions.clipboard-indicator.gschema.xml"
+    install -Dm644 "schemas/${_xmlname}" \
+        "${_extdir}/schemas/${_xmlname}"
+
+    # Symlink the gschema xml into the system-wide schema dir so
+    # glib-compile-schemas picks it up on gnome-shell restart.
+    install -d "${pkgdir}/usr/share/glib-2.0/schemas"
+    ln -s "/usr/share/gnome-shell/extensions/${_uuid}/schemas/${_xmlname}" \
+        "${pkgdir}/usr/share/glib-2.0/schemas/${_xmlname}"
+
+    # --- compiled locales -------------------------------------------------------
+    find locale -type f -name '*.mo' | while read -r _mo; do
+        install -Dm644 "${_mo}" "${_extdir}/${_mo}"
+    done
+}

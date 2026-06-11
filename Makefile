@@ -1,4 +1,4 @@
-MODULES = *.js locale/*/LC_MESSAGES/*.mo metadata.json stylesheet.css LICENSE.rst README.rst schemas/
+MODULES = *.js locale/*/LC_MESSAGES/*.mo metadata.json stylesheet.css LICENSE.rst README.rst schemas/ src/
 INSTALLPATH=~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com/
 
 all: compile-locales compile-settings
@@ -27,3 +27,17 @@ nested-session:
 
 bundle: all
 	zip -FSr bundle.zip $(MODULES)
+
+test:
+	gjs -m tests/run.js
+
+check: test
+
+bench:
+	@if [ -f bench/run.js ]; then \
+		gjs -m bench/run.js; \
+	else \
+		echo "bench/run.js not found — skipping benchmarks"; \
+	fi
+
+.PHONY: all compile-settings compile-locales update-po-files install nested-session bundle test check bench
