@@ -18,6 +18,7 @@ import './core/SearchFilter.test.js';
 import './core/hash.test.js';
 import './core/ClipboardEntry.test.js';
 import './core/registry-fidelity.test.js';
+import './core/ClipboardController.test.js';
 
 // Adapters — may use gi://GLib, gi://Gio (available under plain gjs)
 // but must NOT import gi://St, gi://Clutter, gi://Meta.

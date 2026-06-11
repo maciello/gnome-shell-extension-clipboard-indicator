@@ -297,5 +297,29 @@
         <default>true</default>
         <summary>Show the preview button on each image item</summary>
     </key>
+    <key type="i" name="rendered-history-limit">
+        <default>50</default>
+        <summary>Maximum number of non-favorite history rows to render</summary>
+        <description>
+            The number of most-recent non-favorite history items to actually
+            render as menu rows. The full history is still kept in memory; older
+            items are rendered lazily when matched by search. Lower values make
+            opening the menu faster.
+        </description>
+        <range min="1" max="10000"/>
+    </key>
+    <key name="image-compression" type="s">
+        <choices>
+            <choice value="off"/>
+            <choice value="lossless"/>
+            <choice value="lossy"/>
+        </choices>
+        <default>'off'</default>
+        <summary>Compress cached images</summary>
+        <description>
+            Compress images written to the on-disk cache. 'off' stores the raw
+            bytes; 'lossless' / 'lossy' transcode to webp via ImageMagick.
+        </description>
+    </key>
     </schema>
 </schemalist>
