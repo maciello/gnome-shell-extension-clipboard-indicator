@@ -15,6 +15,7 @@ overhead. On the real GNOME shell these same operations ran on the compositor ma
 | Copy dedup — 13 MB image, 1 002-entry history | **141.5 ms** / copy | **0.0004 ms** / copy | O(n) × `glibHash(13MB)` → O(1) cached key; **~390 000× faster** |
 | Copy dedup — large image, already-known | same as above | **0.0004 ms** | Map.get() hit; bytes never re-hashed |
 | `registry.txt` write — burst of 20 copies | **276 ms** (20 × 13.8 ms) | **1.8 ms** (1 write) | Debouncer coalesces 20→1; **20× fewer disk ops, 20× less I/O** |
+| `registry.txt` write serialization — 1 002-entry registry, single-change | **6.6 ms** (full re-stringify) | **3.8 ms** (incremental: 1 re-serialized, rest from cache) | `serializedRecord()` per-entry JSON cache; **~1.7× faster** |
 | Menu model prep — build + partition 1 002 entries | N/A (all actor-side) | **0.081 ms** | HistoryModel.bulkLoad + favorites()/history() filter |
 | Menu open — 1 002 entries (actor count) | ~1 002 actors created sync | ~50 recycled actors | **~20× fewer DOM nodes** on compositor thread (qualitative; actors not instantiable headless) |
 | Search — 6-keystroke query, 1 002 entries, regex | **4.3 ms** (new RegExp/keystroke) | **4.2 ms** (compiled once) | ~same raw speed; key win = search now runs off the compositor call stack |
