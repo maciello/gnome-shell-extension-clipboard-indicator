@@ -1,0 +1,22 @@
+[Unit]
+Description=Check for clipboard-indicator-maciello updates and notify
+Documentation=https://github.com/maciello/gnome-shell-extension-clipboard-indicator
+# This unit file is managed by packaging/install.sh.
+# The ExecStart path below MUST be updated to the absolute path where
+# clipboard-indicator-update.sh was installed before enabling this service.
+# install.sh writes the correct path at install time using sed in-place.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# NOTE: install.sh replaces the placeholder below with the real absolute path.
+ExecStart=__INSTALL_SH_DIR__/clipboard-indicator-update.sh
+StandardOutput=append:%h/.local/share/clipboard-indicator-updater/update.log
+StandardError=append:%h/.local/share/clipboard-indicator-updater/update.log
+# Allow the service to fail without propagating failure to the timer.
+SuccessExitStatus=0 1
+RemainAfterExit=no
+
+[Install]
+WantedBy=default.target

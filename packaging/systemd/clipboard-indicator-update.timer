@@ -1,0 +1,15 @@
+[Unit]
+Description=Periodically check for clipboard-indicator-maciello updates
+Documentation=https://github.com/maciello/gnome-shell-extension-clipboard-indicator
+
+[Timer]
+# First run 10 minutes after the user session starts (gives network time to come up).
+OnBootSec=10min
+# Then re-run once per day.
+OnUnitActiveSec=1d
+# If the timer was missed (e.g. laptop was off), run it at next opportunity.
+Persistent=true
+Unit=clipboard-indicator-update.service
+
+[Install]
+WantedBy=timers.target
