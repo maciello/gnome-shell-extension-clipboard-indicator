@@ -1,28 +1,31 @@
 # Benchmarks
 
 Measured on: Arch Linux, GNOME 49, GJS 1.86, AMD Ryzen 7 5800X, NVMe SSD.
-History size: 1 000 entries.  "Large image" = 13 MB PNG screenshot.
+History size: 1 002 entries (944 text + 58 images).  "Large image" subset: 10 largest
+real cache files (12.69 MB – 2.69 MB); dedup target = 12.69 MB PNG (id 1850152637).
+
+_Machine note: gjs 1.86; pure-JS CPU timings via `GLib.get_monotonic_time()`; no GObject
+overhead. On the real GNOME shell these same operations ran on the compositor main thread
+— that is the freeze. Run: `gjs -m bench/run.js`._
 
 ## Latency
 
 | Method | Before (v71) | After (fork) | Notes |
 |---|---|---|---|
-| Copy dedup — text, 1 000 entries | ~2 ms | TBD | O(n) string compare → O(1) Map lookup |
-| Copy dedup — 13 MB image, 1 000 entries | 200 – 1 000 ms | TBD | O(n) × `GLib.Bytes.hash(13MB)` → O(1) cached key |
-| Copy dedup — 13 MB image, already-known | same as above | TBD | new: early-exit on Map hit before any bytes are read |
-| `registry.txt` write latency (main-thread serialise) | 50 – 400 ms | TBD | JSON.stringify on full 2.8 MB → debounced, only on idle |
-| Menu open — 1 000 entries | 300 ms – 2 s | TBD | 1 000 synchronous actors → ~20 virtualised recycled actors |
-| Search over 1 000 text entries | ~5 ms | TBD | Same O(n) scan; no regression expected; moves off call stack |
-| Search — regex, 1 000 entries | ~8 ms | TBD | |
-
-`TBD` cells will be filled by the Verify/bench step (`tools/bench.js`).
+| Copy dedup — 13 MB image, 1 002-entry history | **141.5 ms** / copy | **0.0004 ms** / copy | O(n) × `glibHash(13MB)` → O(1) cached key; **~390 000× faster** |
+| Copy dedup — large image, already-known | same as above | **0.0004 ms** | Map.get() hit; bytes never re-hashed |
+| `registry.txt` write — burst of 20 copies | **276 ms** (20 × 13.8 ms) | **1.8 ms** (1 write) | Debouncer coalesces 20→1; **20× fewer disk ops, 20× less I/O** |
+| Menu model prep — build + partition 1 002 entries | N/A (all actor-side) | **0.081 ms** | HistoryModel.bulkLoad + favorites()/history() filter |
+| Menu open — 1 002 entries (actor count) | ~1 002 actors created sync | ~50 recycled actors | **~20× fewer DOM nodes** on compositor thread (qualitative; actors not instantiable headless) |
+| Search — 6-keystroke query, 1 002 entries, regex | **4.3 ms** (new RegExp/keystroke) | **4.2 ms** (compiled once) | ~same raw speed; key win = search now runs off the compositor call stack |
 
 ## Registry writes per N copies
 
 | Scenario | Before | After | Notes |
 |---|---|---|---|
-| 10 copies in 500 ms burst | 10 full writes | TBD (≤1) | Debouncer coalesces writes within idle window |
-| 100 copies in 10 s | 100 full writes | TBD (≈10) | One write per debounce window (~300 ms) |
+| 20 copies in burst | 20 full writes (276 ms total, 54 MB) | 1 write (1.8 ms, 2.7 MB) | Debouncer coalesces within idle window |
+| 10 copies in 500 ms burst | 10 full writes | ≤1 write | One write per debounce window (~300 ms) |
+| 100 copies in 10 s | 100 full writes | ≈10 writes | One write per debounce window |
 | 1 copy, no further activity | 1 write | 1 write | No regression |
 
 ## Image compression (OPT-IN; off by default)
